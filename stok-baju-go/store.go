@@ -99,3 +99,52 @@ func CreateProduct(db *sql.DB, p Product, variants []Variant) (int64, error) {
 	}
 	return id, nil
 }
+
+func ListProducts(db *sql.DB) ([]Product, error) {
+	rows, err := db.Query(`SELECT id, name, price, image_url, has_sizes, created_at, updated_at FROM products ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.ImageURL, &p.HasSizes, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func GetProduct(db *sql.DB, id int64) (Product, []Variant, error) {
+	var p Product
+	err := db.QueryRow(`SELECT id, name, price, image_url, has_sizes, created_at, updated_at FROM products WHERE id = ?`, id).Scan(&p.ID, &p.Name, &p.Price, &p.ImageURL, &p.HasSizes, &p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return Product{}, nil, err
+	}
+
+	rows, err := db.Query(`SELECT id, product_id, size_label, stock, sort_order FROM product_variants WHERE product_id = ? ORDER BY sort_order`, id)
+	if err != nil {
+		return Product{}, nil, err
+	}
+	defer rows.Close()
+
+	var variants []Variant
+	for rows.Next() {
+		var v Variant
+		if err := rows.Scan(&v.ID, &v.ProductID, &v.SizeLabel, &v.Stock, &v.SortOrder); err != nil {
+			return Product{}, nil, err
+		}
+		variants = append(variants, v)
+	}
+
+	if err := rows.Err(); err != nil {
+		return Product{}, nil, err
+	}
+	return p, variants, nil
+}
