@@ -1,7 +1,4 @@
-# Runtime data Stok Baju (jangan di-commit, rutin backup)
-stok-baju-go/data/
 *.db
 *.db-wal
 *.db-shm
 # Binary hasil build
-stok-baju-go/stok-baju
