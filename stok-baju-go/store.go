@@ -79,7 +79,7 @@ func CreateProduct(db *sql.DB, p Product, variants []Variant) (int64, error) {
 
 	now := time.Now().Format(time.RFC3339)
 	res, err := tx.Exec(`INSERT INTO products (name, price, image_url, has_sizes, created_at, updated_at)
-	    VALUES (?, ?, ?, ?, ?, ?`, p.Name, p.Price, p.ImageURL, p.HasSizes, now, now)
+	    VALUES (?, ?, ?, ?, ?, ?)`, p.Name, p.Price, p.ImageURL, p.HasSizes, now, now)
 	if err != nil {
 		return 0, err
 	}
@@ -147,4 +147,42 @@ func GetProduct(db *sql.DB, id int64) (Product, []Variant, error) {
 		return Product{}, nil, err
 	}
 	return p, variants, nil
+}
+
+func UpdateProduct(db *sql.DB, id int64, p Product, variants []Variant) error {
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	now := time.Now().Format(time.RFC3339)
+	_, err = tx.Exec(`UPDATE products SET name = ?, price = ?, image_url = ?, has_sizes = ?, updated_at = ? WHERE id = ?`, p.Name, p.Price, p.ImageURL, p.HasSizes, now, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`DELETE FROM product_variants WHERE product_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	for _, v := range variants {
+		_, err := tx.Exec(`INSERT INTO product_variants (product_id, size_label, stock, sort_order)
+	    VALUES (?, ?, ?, ?)`, id, v.SizeLabel, v.Stock, v.SortOrder)
+		if err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteProduct(db *sql.DB, id int64) error {
+	_, err := db.Exec(`DELETE FROM products WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

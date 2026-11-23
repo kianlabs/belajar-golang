@@ -22,6 +22,11 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "ok")
 	})
+	mux.HandleFunc("GET /api/products", listProductsHandler(db))
+	mux.HandleFunc("POST /api/products", createProductHandler(db))
+	mux.HandleFunc("GET /api/products/{id}", getProductHandler(db))
+	mux.HandleFunc("PUT /api/products/{id}", updateProductHandler(db))
+	mux.HandleFunc("DELETE /api/products/{id}", deleteProductHandler(db))
 	webFS, err := fs.Sub(webFiles, "web")
 	if err != nil {
 		log.Fatal(err)
